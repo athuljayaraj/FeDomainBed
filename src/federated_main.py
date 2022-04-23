@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
-
 import os
 import copy
 import time
 import pickle
 import numpy as np
+from domainbed.algorithms import Algorithm
+from domainbed import datasets
 from tqdm import tqdm
 
 import torch
@@ -17,6 +18,8 @@ from options import args_parser
 from update import LocalUpdate, test_inference
 from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar
 from utils import get_dataset, average_weights, exp_details
+
+from domainbed.lib import hparams_registry
 
 
 if __name__ == '__main__':
@@ -74,6 +77,17 @@ if __name__ == '__main__':
     print_every = 2
     val_loss_pre, counter = 0, 0
 
+    # choose algorithm
+    hparams = hparams_registry.default_hparams(args.algorithm, args.dataset)
+    batch_size=hparams['batch_size']
+    dataset = vars(datasets)["RotatedMNIST"]("data/", None,
+            100000, hparams)
+
+    algorithm_class = Algorithm.get_algorithm_class(args.algorithm)
+    algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
+        len(dataset) - len(10000), hparams)
+
+
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
         print(f'\n | Global Training Round : {epoch+1} |\n')
@@ -84,7 +98,7 @@ if __name__ == '__main__':
 
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                      idxs=user_groups[idx], logger=logger)
+                                      idxs=user_groups[idx], logger=logger, algorith="")
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
