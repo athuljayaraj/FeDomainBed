@@ -89,7 +89,8 @@ def exp_details(args):
     print(f'    Model     : {args.model}')
     print(f'    Optimizer : {args.optimizer}')
     print(f'    Learning  : {args.lr}')
-    print(f'    Global Rounds   : {args.epochs}\n')
+    print(f'    Global Rounds   : {args.epochs}')
+    print(f'    Device   : {"cuda:{}".format(args.gpu) if args.gpu != None else "cpu"}\n')
 
     print('    Federated parameters:')
     if args.iid:
