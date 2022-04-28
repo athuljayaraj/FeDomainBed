@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
-from cProfile import label
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
@@ -22,7 +21,6 @@ class DatasetSplit(Dataset):
     def __getitem__(self, item):
         image, label = self.dataset[self.idxs[item]]
         return torch.tensor(image), torch.tensor(label)
-
 
 class LocalUpdate(object):
     def __init__(self, args, dataset, idxs, logger, algorithm):

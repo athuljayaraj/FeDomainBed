@@ -62,9 +62,12 @@ class Algorithm(torch.nn.Module):
     - update()
     - predict()
     """
+    network = None
+    
     def __init__(self, input_shape, num_classes, num_domains, hparams):
         super(Algorithm, self).__init__()
         self.hparams = hparams
+        
 
     def update(self, minibatches, unlabeled=None):
         """
@@ -78,6 +81,9 @@ class Algorithm(torch.nn.Module):
 
     def predict(self, x):
         raise NotImplementedError
+
+    def get_network(self):
+        return self.network
 
 class ERM(Algorithm):
     """

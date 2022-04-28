@@ -42,33 +42,25 @@ if __name__ == '__main__':
     train_dataset, test_dataset, user_groups = get_dataset(args)
 
     # BUILD MODEL
-    if args.model == 'cnn':
-        # Convolutional neural netork
-        if args.dataset == 'mnist':
-            global_model = CNNMnist(args=args)
-        elif args.dataset == 'fmnist':
-            global_model = CNNFashion_Mnist(args=args)
-        elif args.dataset == 'cifar':
-            global_model = CNNCifar(args=args)
+    # if args.model == 'cnn':
+    #     # Convolutional neural netork
+    #     if args.dataset == 'mnist':
+    #         global_model = CNNMnist(args=args)
+    #     elif args.dataset == 'fmnist':
+    #         global_model = CNNFashion_Mnist(args=args)
+    #     elif args.dataset == 'cifar':
+    #         global_model = CNNCifar(args=args)
 
-    elif args.model == 'mlp':
-        # Multi-layer preceptron
-        img_size = train_dataset[0][0].shape
-        len_in = 1
-        for x in img_size:
-            len_in *= x
-            global_model = MLP(dim_in=len_in, dim_hidden=64,
-                               dim_out=args.num_classes)
-    else:
-        exit('Error: unrecognized model')
-
-    # Set the model to train and send it to device.
-    global_model.to(device)
-    global_model.train()
-    print(global_model)
-
-    # copy weights
-    global_weights = global_model.state_dict()
+    # elif args.model == 'mlp':
+    #     # Multi-layer preceptron
+    #     img_size = train_dataset[0][0].shape
+    #     len_in = 1
+    #     for x in img_size:
+    #         len_in *= x
+    #         global_model = MLP(dim_in=len_in, dim_hidden=64,
+    #                            dim_out=args.num_classes)
+    # else:
+    #     exit('Error: unrecognized model')
 
     # Training
     train_loss, train_accuracy = [], []
@@ -85,6 +77,19 @@ if __name__ == '__main__':
     algorithm_class = get_algorithm_class(args.algorithm)
     algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
         len(dataset) - 10000, hparams)
+    
+    
+
+    global_model = algorithm.get_network()
+
+    # Set the model to train and send it to device.
+    global_model.to(device)
+    global_model.train()
+    print(global_model)
+
+    # copy weights
+    global_weights = global_model.state_dict()
+
 
 
     for epoch in tqdm(range(args.epochs)):
