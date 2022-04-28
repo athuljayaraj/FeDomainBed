@@ -11,18 +11,18 @@ def args_parser():
     # federated arguments (Notation for the arguments followed from paper)
     parser.add_argument('--epochs', type=int, default=10,
                         help="number of rounds of training")
-    parser.add_argument('--num_users', type=int, default=100,
+    parser.add_argument('--num_users', type=int, default=10,
                         help="number of users: K")
-    parser.add_argument('--frac', type=float, default=0.1,
+    parser.add_argument('--frac', type=float, default=1,
                         help='the fraction of clients: C')
-    parser.add_argument('--local_ep', type=int, default=10,
+    parser.add_argument('--local_ep', type=int, default=1,
                         help="the number of local epochs: E")
     parser.add_argument('--local_bs', type=int, default=10,
                         help="local batch size: B")
     parser.add_argument('--lr', type=float, default=0.01,
                         help='learning rate')
-    parser.add_argument('--momentum', type=float, default=0.5,
-                        help='SGD momentum (default: 0.5)')
+    parser.add_argument('--momentum', type=float, default=0.9,
+                        help='SGD momentum (default: 0.9)')
 
     # model arguments
     parser.add_argument('--model', type=str, default='mlp', help='model name')
@@ -33,7 +33,7 @@ def args_parser():
                         use for convolution')
     parser.add_argument('--num_channels', type=int, default=1, help="number \
                         of channels of imgs")
-    parser.add_argument('--norm', type=str, default='batch_norm',
+    parser.add_argument('--norm', type=str, default='None',
                         help="batch_norm, layer_norm, or None")
     parser.add_argument('--num_filters', type=int, default=32,
                         help="number of filters for conv nets -- 32 for \
@@ -59,7 +59,7 @@ def args_parser():
                         help='rounds of early stopping')
     parser.add_argument('--verbose', type=int, default=1, help='verbose')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
-    parser.add_argument('--algorithm', type=str, default='erm', help="name \
+    parser.add_argument('--algorithm', type=str, default='ERM', help="name \
                         of algorithm")
     args = parser.parse_args()
     return args
