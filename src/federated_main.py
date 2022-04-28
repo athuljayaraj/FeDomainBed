@@ -7,7 +7,7 @@ import copy
 import time
 import pickle
 import numpy as np
-from domainbed.algorithms import Algorithm
+from domainbed.algorithms import get_algorithm_class
 from domainbed import datasets
 from tqdm import tqdm
 
@@ -80,10 +80,9 @@ if __name__ == '__main__':
     # choose algorithm
     hparams = hparams_registry.default_hparams(args.algorithm, args.dataset)
     batch_size=hparams['batch_size']
-    dataset = vars(datasets)["RotatedMNIST"]("data/", None,
-            100000, hparams)
+    dataset = vars(datasets)["RotatedMNIST"]("data/", 100000, hparams)
 
-    algorithm_class = Algorithm.get_algorithm_class(args.algorithm)
+    algorithm_class = get_algorithm_class(args.algorithm)
     algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
         len(dataset) - len(10000), hparams)
 
