@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                      idxs=user_groups[idx], logger=logger, algorith="")
+                                      idxs=user_groups[idx], logger=logger, algorithm=algorithm)
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
