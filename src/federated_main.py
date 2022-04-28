@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     algorithm_class = get_algorithm_class(args.algorithm)
     algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
-        len(dataset) - len(10000), hparams)
+        len(dataset) - 10000, hparams)
 
 
     for epoch in tqdm(range(args.epochs)):
