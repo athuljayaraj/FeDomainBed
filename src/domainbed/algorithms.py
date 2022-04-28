@@ -62,11 +62,11 @@ class Algorithm(torch.nn.Module):
     - update()
     - predict()
     """
-    network = None
 
     def __init__(self, input_shape, num_classes, num_domains, hparams):
         super(Algorithm, self).__init__()
         self.hparams = hparams
+        self.network = None
         
 
     def update(self, minibatches, unlabeled=None):
