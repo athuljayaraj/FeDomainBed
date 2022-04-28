@@ -71,7 +71,7 @@ class LocalUpdate(object):
             for batch_idx, (images, labels) in enumerate(self.trainloader):
                 updated_network = self.algorithm.update([(images.to(self.device), labels.to(self.device))])
 
-            loss = updated_network.loss
+            loss = updated_network['loss']
 
                 # optimizer.zero_grad()
                 # log_probs = model(images)
