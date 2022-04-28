@@ -68,11 +68,8 @@ class LocalUpdate(object):
 
         for iter in range(self.args.local_ep):
             batch_loss = []
-            images_labels_full_batch = []
             for batch_idx, (images, labels) in enumerate(self.trainloader):
-                images_labels_full_batch = images_labels_full_batch + [(images.to(self.device), labels.to(self.device))]
-            
-            updated_network = self.algorithm.update(images_labels_full_batch)
+                updated_network = self.algorithm.update([(images.to(self.device), labels.to(self.device))])
 
             loss = updated_network.loss
 
