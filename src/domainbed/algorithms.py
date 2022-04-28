@@ -63,7 +63,7 @@ class Algorithm(torch.nn.Module):
     - predict()
     """
     network = None
-    
+
     def __init__(self, input_shape, num_classes, num_domains, hparams):
         super(Algorithm, self).__init__()
         self.hparams = hparams
@@ -115,7 +115,7 @@ class ERM(Algorithm):
         loss.backward()
         self.optimizer.step()
 
-        return {'loss': loss.item(), 'model': self.network.state_dict()}
+        return {'loss': loss.item()}
 
     def predict(self, x):
         return self.network(x)

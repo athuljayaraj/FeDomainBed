@@ -86,7 +86,7 @@ class LocalUpdate(object):
             batch_loss.append(loss)
             epoch_loss.append(sum(batch_loss)/len(batch_loss))
 
-        model_state_dict = updated_network['model']
+        model_state_dict = self.algorithm.get_network().state_dict()
         return model_state_dict, sum(epoch_loss) / len(epoch_loss)
 
     def inference(self, model):
