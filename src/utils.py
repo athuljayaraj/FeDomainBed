@@ -38,10 +38,7 @@ def get_dataset(args):
     """
 
     data_dir = '../data/{}'.format(args.dataset)
-
-    if args.dataset == 'coloredmnist':
-        pass
-    elif args.dataset == 'cifar':
+    if args.dataset == 'cifar':
         apply_transform = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -64,7 +61,7 @@ def get_dataset(args):
             else:
                 # Chose euqal splits for every user
                 user_groups = cifar_noniid(train_dataset, args.num_users)
-    elif args.dataset == 'mnist' or 'fmnist':
+    elif args.dataset == 'mnist' or 'fmnist' or 'cmnist' or 'rotmnist':
         apply_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))])
@@ -89,8 +86,10 @@ def get_dataset(args):
                 # Chose euqal splits for every user
                 user_groups = mnist_noniid(train_dataset, args.num_users)
 
-    for client in user_groups:
-        color_mnist(train_dataset[user_groups[client]], number_of_colors=3)
+    if args.dataset == 'cmnist':
+        print("Coloring the MNIST")
+        for client in user_groups:
+            color_mnist(train_dataset[user_groups[client]], number_of_colors=3)
 
     return train_dataset, test_dataset, user_groups
 
