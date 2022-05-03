@@ -16,7 +16,6 @@ from tensorboardX import SummaryWriter
 
 from options import args_parser
 from update import LocalUpdate, test_inference
-from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar
 from utils import get_dataset, average_weights, exp_details
 
 from domainbed.lib import hparams_registry
@@ -78,18 +77,14 @@ if __name__ == '__main__':
     algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
         len(dataset) - 10000, hparams)
     
-    
-
     global_model = algorithm.get_network()
 
     # Set the model to train and send it to device.
     global_model.to(device)
     global_model.train()
-    print(global_model)
 
     # copy weights
     global_weights = global_model.state_dict()
-
 
 
     for epoch in tqdm(range(args.epochs)):
