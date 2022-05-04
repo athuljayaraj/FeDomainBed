@@ -103,9 +103,6 @@ def get_dataset(args):
             color_mnist(list(map(train_dataset.data.__getitem__,
                         user_groups[client])), number_of_colors=3)
 
-        print("Shape of input: ")
-        print(train_dataset.data[0].shape)
-
     return train_dataset, test_dataset, user_groups
 
 

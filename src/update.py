@@ -19,8 +19,6 @@ class DatasetSplit(Dataset):
         return len(self.idxs)
 
     def __getitem__(self, item):
-        print(self.idxs[item])
-        print(len(self.dataset.data))
         try:
             image, label = self.dataset[self.idxs[item]]
         except:
