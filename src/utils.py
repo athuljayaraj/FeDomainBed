@@ -34,8 +34,8 @@ def color_mnist(list_of_images, number_of_colors=2):
 def expand_to_3d(data):
     data_3channel = []
     for image in data:
-        image = torch.reshape(image, [28, 28, 1])
-        data_3channel.append(torch.cat([image, image, image], axis=2))
+        image = torch.reshape(image, [1, 28, 28])
+        data_3channel.append(torch.cat([image, image, image], axis=0))
     return data_3channel
 
 
