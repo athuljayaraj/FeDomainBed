@@ -15,7 +15,7 @@ import random
 def generate_random_colors(number_of_colors=2):
     random_colors = []
     for i in range(number_of_colors):
-        random_color = ImageColor.getrgb("%06x" % random.randint(0, 0xFFFFFF))
+        random_color = ImageColor.getrgb("#%06x" % random.randint(0, 0xFFFFFF))
         random_colors.append([random_color])
     return random_colors
 
@@ -41,7 +41,8 @@ def get_dataset(args):
     if args.dataset == 'cifar':
         apply_transform = transforms.Compose(
             [transforms.ToTensor(),
-             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+             ])
 
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True,
                                          transform=apply_transform)
@@ -64,6 +65,7 @@ def get_dataset(args):
     elif args.dataset == 'mnist' or 'fmnist' or 'cmnist' or 'rotmnist':
         apply_transform = transforms.Compose([
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
             transforms.Normalize((0.1307,), (0.3081,))])
 
         train_dataset = datasets.MNIST(data_dir, train=True, download=True,
@@ -89,10 +91,18 @@ def get_dataset(args):
     if args.dataset == 'cmnist':
         print("Coloring the MNIST")
         for client in user_groups:
-            color_mnist(train_dataset[user_groups[client]], number_of_colors=3)
+            train_dataset.data = expand_to_3d(train_dataset.data)
+            color_mnist(list(map(train_dataset.data.__getitem__,
+                        user_groups[client])), number_of_colors=3)
 
     return train_dataset, test_dataset, user_groups
 
+def expand_to_3d(data):
+    data_3channel = []
+    for image in np.array(data):
+        image = np.reshape(image, [28, 28, 1])
+        data_3channel.append(np.concatenate([image, image, image], axis=2))
+    return data_3channel
 
 def average_weights(w):
     """
