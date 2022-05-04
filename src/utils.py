@@ -27,9 +27,15 @@ def pick_at_random(a_list):
 def color_mnist(list_of_images, number_of_colors=2):
     colors = generate_random_colors(number_of_colors)
     for image in list_of_images:
-        image[np.any(image != [0], axis=-1)] = pick_at_random(colors)
+        image[np.any(image != [0, 0, 0], axis=-1)] = pick_at_random(colors)
     return list_of_images
 
+
+def expand_to_3d(data):
+    data_3channel = []
+    for image in data:
+        data_3channel.append(torch.cat(image, image, image), 2)
+    return data_3channel
 
 def get_dataset(args):
     """ Returns train and test datasets and a user group which is a dict where
@@ -89,20 +95,14 @@ def get_dataset(args):
                 user_groups = mnist_noniid(train_dataset, args.num_users)
 
     if args.dataset == 'cmnist':
+        train_dataset.data = expand_to_3d(train_dataset.data)
         print("Coloring the MNIST")
         for client in user_groups:
-            train_dataset.data = expand_to_3d(train_dataset.data)
             color_mnist(list(map(train_dataset.data.__getitem__,
                         user_groups[client])), number_of_colors=3)
 
     return train_dataset, test_dataset, user_groups
 
-def expand_to_3d(data):
-    data_3channel = []
-    for image in np.array(data):
-        image = np.reshape(image, [28, 28, 1])
-        data_3channel.append(np.concatenate([image, image, image], axis=2))
-    return data_3channel
 
 def average_weights(w):
     """
