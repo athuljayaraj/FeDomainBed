@@ -116,10 +116,10 @@ class ColoredMNIST(MultipleEnvironmentMNIST):
 
     def __init__(self, root, test_envs, hparams):
         super(ColoredMNIST, self).__init__(root, [0.1, 0.2, 0.9],
-                                         self.color_dataset, (2, 28, 28,), 2)
+                                         self.color_dataset, (28, 28, 3), 10)
 
-        self.input_shape = (2, 28, 28,)
-        self.num_classes = 2
+        self.input_shape = (28, 28, 3)
+        self.num_classes = 10
 
     def color_dataset(self, images, labels, environment):
         # # Subsample 2x for computational convenience
