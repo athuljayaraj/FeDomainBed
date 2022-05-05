@@ -39,12 +39,12 @@ def expand_to_3d(data):
 
 
 def color_mnist(list_of_images, number_of_colors=2):
-    colors = generate_random_colors(number_of_colors)
-    for image in list_of_images:
-        color = torch.tensor(pick_at_random(colors))
-        list_of_images.append(torch.where(
-            image != torch.tensor([0, 0, 0]), color, image))
-    return list_of_images
+  colors = generate_random_colors(number_of_colors)
+  colored_images = []
+  for image in list_of_images:
+    color = torch.tensor(pick_at_random(colors))
+    colored_images.append(torch.where(image != torch.tensor([0,0,0]), color, image))
+  return colored_images
 
 
 def get_dataset(args):
@@ -108,8 +108,10 @@ def get_dataset(args):
         train_dataset.data = expand_to_3d(train_dataset.data)
         print("Coloring the MNIST")
         for client in user_groups:
-            color_mnist(list(map(train_dataset.data.__getitem__,
-                        user_groups[client])), number_of_colors=3)
+            colored_mnist_for_client = color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=3)
+            for idx_client, idx in enumerate(user_groups[client]):
+                train_dataset.data[idx] = colored_mnist_for_client[idx_client]
+
 
     print(train_dataset.data[0].shape)
     plt.imshow(test_dataset.data[0])
