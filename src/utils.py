@@ -10,33 +10,41 @@ from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
 from PIL import ImageColor
 import random
+from matplotlib import pyplot as plt
+
+
+def get_random_color():
+    return np.random.randint(0, 255, dtype=np.uint8)
 
 
 def generate_random_colors(number_of_colors=2):
     random_colors = []
     for i in range(number_of_colors):
-        random_color = ImageColor.getrgb("#%06x" % random.randint(0, 0xFFFFFF))
-        random_colors.append([random_color])
+        random_color = (get_random_color(),
+                        get_random_color(), get_random_color())
+        random_colors.append(random_color)
     return random_colors
 
 
 def pick_at_random(a_list):
-    return a_list[random.randint(0, len(a_list) - 1)]
-
-
-def color_mnist(list_of_images, number_of_colors=2):
-    colors = generate_random_colors(number_of_colors)
-    for image in list_of_images:
-        image[np.any(image != [0, 0, 0], axis=-1)] = torch.tensor(pick_at_random(colors))
-    return list_of_images
+    return a_list[np.random.randint(0, len(a_list) - 1)]
 
 
 def expand_to_3d(data):
     data_3channel = []
     for image in data:
-        image = torch.reshape(image, [1, 28, 28])
-        data_3channel.append(torch.cat([image, image, image], axis=0))
+        image = torch.reshape(image, [28, 28, 1])
+        data_3channel.append(torch.cat((image, image, image), axis=-1))
     return data_3channel
+
+
+def color_mnist(list_of_images, number_of_colors=2):
+    colors = generate_random_colors(number_of_colors)
+    for image in list_of_images:
+        color = torch.tensor(pick_at_random(colors))
+        list_of_images.append(torch.where(
+            image != torch.tensor([0, 0, 0]), color, image))
+    return list_of_images
 
 
 def get_dataset(args):
@@ -102,6 +110,10 @@ def get_dataset(args):
         for client in user_groups:
             color_mnist(list(map(train_dataset.data.__getitem__,
                         user_groups[client])), number_of_colors=3)
+
+    print(train_dataset.data[0].shape)
+    plt.imshow(test_dataset.data[0])
+    plt.show()
 
     return train_dataset, test_dataset, user_groups
 
