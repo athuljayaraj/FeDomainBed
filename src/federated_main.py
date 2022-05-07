@@ -19,9 +19,12 @@ from update import LocalUpdate, test_inference
 from utils import get_dataset, average_weights, exp_details
 
 from domainbed.lib import hparams_registry
-
+import wandb
+import os
+os.environ["WANDB_API_KEY"] = "e850cb010e84db3ef3f51b131087c4615181d915"
 
 if __name__ == '__main__':
+    wandb.init(project="FeDomainBed")
     start_time = time.time()
 
     # define paths
@@ -39,7 +42,7 @@ if __name__ == '__main__':
 
     # load dataset and user groups
     train_dataset, test_dataset, user_groups = get_dataset(args)
-
+    
     # BUILD MODEL
     # if args.model == 'cnn':
     #     # Convolutional neural netork
@@ -77,9 +80,8 @@ if __name__ == '__main__':
     input_shape = train_dataset.data[0].shape
     print('input shape: ')
     print(input_shape)
-    algorithm = algorithm_class(input_shape, 10,
-        len(train_dataset.data) - 10000, hparams)
-    
+    algorithm = algorithm_class(input_shape, 10, len(train_dataset.data) - 10000, hparams)
+
     global_model = algorithm.get_network()
 
     # Set the model to train and send it to device.
@@ -94,13 +96,12 @@ if __name__ == '__main__':
         local_weights, local_losses = [], []
         print(f'\n | Global Training Round : {epoch+1} |\n')
 
-        global_model.train()
         m = max(int(args.frac * args.num_users), 1)
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
 
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                      idxs=user_groups[idx], logger=logger, algorithm=algorithm)
+                                    idxs=user_groups[idx], logger=logger, algorithm=algorithm)
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
@@ -113,36 +114,35 @@ if __name__ == '__main__':
         global_model.load_state_dict(global_weights)
 
         loss_avg = sum(local_losses) / len(local_losses)
-        train_loss.append(loss_avg)
+        train_loss += [loss_avg]
 
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
         global_model.eval()
         for c in range(args.num_users):
             local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                      idxs=user_groups[idx], logger=logger, algorithm=algorithm)
+                                    idxs=user_groups[idx], logger=logger, algorithm=algorithm)
             acc, loss = local_model.inference(model=global_model)
-            list_acc.append(acc)
-            list_loss.append(loss)
-        train_accuracy.append(sum(list_acc)/len(list_acc))
+            list_acc += [acc]
+            list_loss += [loss]
+        train_accuracy += [sum(list_acc)/len(list_acc)]
 
         # print global training loss after every 'i' rounds
         if (epoch+1) % print_every == 0:
             print(f' \nAvg Training Stats after {epoch+1} global rounds:')
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
-
-    # Test inference after completion of training
-    test_acc, test_loss = test_inference(args, global_model, test_dataset)
-
-    print(f' \n Results after {args.epochs} global rounds of training:')
-    print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
-    print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
+        train_acc = train_accuracy[-1]; train_loss = np.mean(np.array(train_loss))
+        # Test inference after completion of training
+        test_acc, test_loss = test_inference(args, global_model, test_dataset)
+        wandb.log({'test accuracy': test_acc, 'test loss': test_loss, 'train accuracy': train_acc, 'train loss': train_loss})
+        
+        print(f' \n Results after {args.epochs} global rounds of training:')
+        print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
+        print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
-        format(args.dataset, args.model, args.epochs, args.frac, args.iid,
-               args.local_ep, args.local_bs)
+    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.format(args.dataset, args.model, args.epochs, args.frac, args.iid, args.local_ep, args.local_bs)
 
     # with open(file_name, 'wb') as f:
     #     pickle.dump([train_loss, train_accuracy], f)
