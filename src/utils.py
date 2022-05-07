@@ -8,9 +8,19 @@ from torchvision import datasets, transforms
 import numpy as np
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
-from PIL import ImageColor
-import random
-from matplotlib import pyplot as plt
+
+COLOR_FOR_CLASS = {
+    0: (74, 21, 158),
+    1: (7, 172, 101),
+    2: (123, 128, 77),
+    3: (117, 240, 14),
+    4: (190, 24, 29),
+    5: (130, 112, 42),
+    6: (14, 190, 53),
+    7: (218, 189, 52),
+    8: (175, 182, 87),
+    9: (13, 103, 227),
+}
 
 
 def get_random_color():
@@ -27,24 +37,37 @@ def generate_random_colors(number_of_colors=2):
 
 
 def pick_at_random(a_list):
-    return a_list[np.random.randint(0, len(a_list) - 1)]
+    if len(a_list) == 1:
+        return a_list[0]
+    else:
+        return a_list[np.random.randint(0, len(a_list) - 1)]
 
 
 def expand_to_3d(data):
-    data_3channel = []
+    data_3channel=[]
     for image in data:
-        image = torch.reshape(image, [28, 28, 1])
+        image=torch.reshape(image, [28, 28, 1])
         data_3channel.append(torch.cat((image, image, image), axis=-1))
     return data_3channel
 
 
-def color_mnist(list_of_images, number_of_colors=2):
-  colors = generate_random_colors(number_of_colors)
-  colored_images = []
-  for image in list_of_images:
-    color = torch.tensor(pick_at_random(colors))
-    colored_images.append(torch.where(image != torch.tensor([0,0,0]), color, image))
-  return colored_images
+def color_mnist(list_of_images, number_of_colors = 2):
+    colors=generate_random_colors(number_of_colors)
+    colored_images=[]
+    for image in list_of_images:
+        color=torch.tensor(pick_at_random(colors))
+        colored_images.append(torch.where(
+            image != torch.tensor([0, 0, 0]), color, image))
+    return colored_images
+
+
+def classwise_color_mnist(list_of_tuple_of_image_and_label, number_of_colors_per_class = 1):
+    colored_images=[]
+    for (image, label) in list_of_tuple_of_image_and_label:
+        color=torch.tensor(COLOR_FOR_CLASS[label])
+        colored_images.append(torch.where(
+            image != torch.tensor([0, 0, 0]), color, image))
+    return colored_images
 
 
 def get_dataset(args):
@@ -53,9 +76,9 @@ def get_dataset(args):
     each of those users.
     """
 
-    data_dir = '../data/{}'.format(args.dataset)
+    data_dir='../data/{}'.format(args.dataset)
     if args.dataset == 'cifar':
-        apply_transform = transforms.Compose(
+        apply_transform=transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
              ])
@@ -106,31 +129,36 @@ def get_dataset(args):
     if args.dataset == 'cmnist':
         train_dataset.data = expand_to_3d(train_dataset.data)
         print("Coloring the MNIST")
-        print("shapes",train_dataset.data[0].shape)
+        print("shapes", train_dataset.data[0].shape)
         for client in user_groups:
-            colored_mnist_for_client = color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=3)
+            colored_mnist_for_client = classwise_color_mnist(list(
+                map(train_dataset.__getitem__, user_groups[client])))
+            # colored_mnist_for_client = color_mnist(list(
+            #     map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=1)
             for idx_client, idx in enumerate(user_groups[client]):
                 train_dataset.data[idx] = colored_mnist_for_client[idx_client]
 
-
     print(train_dataset.data[0].shape)
-    
+
     for idx in range(len(train_dataset.data)):
-        train_dataset.data[idx] = torch.moveaxis(train_dataset.data[idx], -1, 0)
-        train_dataset.data[idx] = torch.moveaxis(train_dataset.data[idx], 1,-1)/255
-    print("shapes",train_dataset.data[0].shape)
+        train_dataset.data[idx] = torch.moveaxis(
+            train_dataset.data[idx], -1, 0)
+        train_dataset.data[idx] = torch.moveaxis(
+            train_dataset.data[idx], 1, -1)/255
+    print("shapes", train_dataset.data[0].shape)
 
     test_dataset.data = expand_to_3d(test_dataset.data)
-    test_dataset.data = color_mnist(test_dataset.data, number_of_colors=2)
+    test_dataset.data = color_mnist(test_dataset.data, number_of_colors=1)
     for idx in range(len(test_dataset.data)):
         test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], -1, 0)
-        test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], 1,-1)/255
-    print("shapes",test_dataset.data[0].shape)
+        test_dataset.data[idx] = torch.moveaxis(
+            test_dataset.data[idx], 1, -1)/255
+    print("shapes", test_dataset.data[0].shape)
 
-    plt.imshow(test_dataset.data[0])
-    plt.show()
-    plt.imshow(train_dataset.data[0])
-    plt.show()
+    # plt.imshow(test_dataset.data[0])
+    # plt.show()
+    # plt.imshow(train_dataset.data[0])
+    # plt.show()
 
     return train_dataset, test_dataset, user_groups
 
@@ -165,3 +193,7 @@ def exp_details(args):
     print(f'    Local Batch size   : {args.local_bs}')
     print(f'    Local Epochs       : {args.local_ep}\n')
     return
+
+
+colors = generate_random_colors(10)
+print(colors)

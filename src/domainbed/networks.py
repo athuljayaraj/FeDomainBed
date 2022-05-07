@@ -35,6 +35,7 @@ def remove_batch_norm_from_resnet(model):
 
 class Identity(nn.Module):
     """An identity layer"""
+
     def __init__(self):
         super(Identity, self).__init__()
 
@@ -44,6 +45,7 @@ class Identity(nn.Module):
 
 class MLP(nn.Module):
     """Just  an MLP"""
+
     def __init__(self, n_inputs, n_outputs, hparams):
         super(MLP, self).__init__()
         self.input = nn.Linear(n_inputs, hparams['mlp_width'])
@@ -68,6 +70,7 @@ class MLP(nn.Module):
 
 class ResNet(torch.nn.Module):
     """ResNet with the softmax chopped off and the batchnorm frozen"""
+
     def __init__(self, input_shape, hparams):
         super(ResNet, self).__init__()
         if hparams['resnet18']:
@@ -89,7 +92,8 @@ class ResNet(torch.nn.Module):
                 stride=(2, 2), padding=(3, 3), bias=False)
 
             for i in range(nc):
-                self.network.conv1.weight.data[:, i, :, :] = tmp[:, i % 3, :, :]
+                self.network.conv1.weight.data[:,
+                                               i, :, :] = tmp[:, i % 3, :, :]
 
         # save memory
         del self.network.fc
@@ -127,7 +131,7 @@ class MNIST_CNN(nn.Module):
 
     def __init__(self, input_shape):
         super(MNIST_CNN, self).__init__()
-        self.conv1 = nn.Conv2d(input_shape[2], 64, 3, 1, padding=1)
+        self.conv1 = nn.Conv2d(input_shape[0], 64, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1)
         self.conv3 = nn.Conv2d(128, 128, 3, 1, padding=1)
         self.conv4 = nn.Conv2d(128, 128, 3, 1, padding=1)
@@ -185,7 +189,7 @@ def Featurizer(input_shape, hparams):
     """Auto-select an appropriate featurizer for the given input shape."""
     if len(input_shape) == 1:
         return MLP(input_shape[0], hparams["mlp_width"], hparams)
-    elif input_shape[:2] == (28, 28):
+    elif input_shape[1:3] == (28, 28):
         return MNIST_CNN(input_shape)
     elif input_shape[1:3] == (32, 32):
         return wide_resnet.Wide_ResNet(input_shape, 16, 2, 0.)
