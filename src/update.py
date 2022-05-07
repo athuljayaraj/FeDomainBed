@@ -71,6 +71,10 @@ class LocalUpdate(object):
         for iter in range(self.args.local_ep):
             batch_loss = []
             for batch_idx, (images, labels) in enumerate(self.trainloader):
+                # print('update_weights: Images len: ')
+                # print(len(images))
+                # print('update_weights: Images shape: ')
+                # print(images[0].shape)
                 updated_network = self.algorithm.update([(images.to(self.device), labels.to(self.device))])
 
             loss = updated_network['loss']
@@ -127,8 +131,8 @@ def test_inference(args, model, test_dataset):
 
     device = 'cuda' if args.gpu != None else 'cpu'
     criterion = nn.NLLLoss().to(device)
-    testloader = DataLoader(test_dataset, batch_size=128,
-                            shuffle=False)
+    testloader = DataLoader(DatasetSplit(test_dataset, range(len(test_dataset))),
+                                 batch_size=128, shuffle=False)
 
     for batch_idx, (images, labels) in enumerate(testloader):
         images, labels = images.to(device), labels.to(device)

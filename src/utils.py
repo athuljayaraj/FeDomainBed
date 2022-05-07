@@ -73,15 +73,14 @@ def get_dataset(args):
         else:
             # Sample Non-IID user data from Mnist
             if args.unequal:
-                # Chose uneuqal splits for every user
+                # Chose unequal splits for every user
                 raise NotImplementedError()
             else:
-                # Chose euqal splits for every user
+                # Chose equal splits for every user
                 user_groups = cifar_noniid(train_dataset, args.num_users)
     elif args.dataset == 'mnist' or 'fmnist' or 'cmnist' or 'rotmnist':
         apply_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
             transforms.Normalize((0.1307,), (0.3081,))])
 
         train_dataset = datasets.MNIST(data_dir, train=True, download=True,
@@ -107,6 +106,7 @@ def get_dataset(args):
     if args.dataset == 'cmnist':
         train_dataset.data = expand_to_3d(train_dataset.data)
         print("Coloring the MNIST")
+        print("shapes",train_dataset.data[0].shape)
         for client in user_groups:
             colored_mnist_for_client = color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=3)
             for idx_client, idx in enumerate(user_groups[client]):
@@ -114,7 +114,22 @@ def get_dataset(args):
 
 
     print(train_dataset.data[0].shape)
+    
+    for idx in range(len(train_dataset.data)):
+        train_dataset.data[idx] = torch.moveaxis(train_dataset.data[idx], -1, 0)
+        train_dataset.data[idx] = torch.moveaxis(train_dataset.data[idx], 1,-1)/255
+    print("shapes",train_dataset.data[0].shape)
+
+    test_dataset.data = expand_to_3d(test_dataset.data)
+    test_dataset.data = color_mnist(test_dataset.data, number_of_colors=2)
+    for idx in range(len(test_dataset.data)):
+        test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], -1, 0)
+        test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], 1,-1)/255
+    print("shapes",test_dataset.data[0].shape)
+
     plt.imshow(test_dataset.data[0])
+    plt.show()
+    plt.imshow(train_dataset.data[0])
     plt.show()
 
     return train_dataset, test_dataset, user_groups

@@ -71,11 +71,14 @@ if __name__ == '__main__':
     # choose algorithm
     hparams = hparams_registry.default_hparams(args.algorithm, args.dataset)
     batch_size=hparams['batch_size']
-    dataset = vars(datasets)["ColoredMNIST"]("data/", 100000, hparams)
+    # dataset = vars(datasets)["ColoredMNIST"]("data/", 100000, hparams)
 
     algorithm_class = get_algorithm_class(args.algorithm)
-    algorithm = algorithm_class(dataset.input_shape, dataset.num_classes,
-        len(dataset) - 10000, hparams)
+    input_shape = train_dataset.data[0].shape
+    print('input shape: ')
+    print(input_shape)
+    algorithm = algorithm_class(input_shape, 10,
+        len(train_dataset.data) - 10000, hparams)
     
     global_model = algorithm.get_network()
 
