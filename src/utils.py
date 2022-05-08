@@ -9,12 +9,13 @@ import numpy as np
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
 
-COLOR_FOR_CLASS = {i: (get_random_color(), get_random_color(),
-                       get_random_color()) for i in range(10)}
-
 
 def get_random_color():
     return np.random.randint(0, 255, dtype=np.uint8)
+
+
+COLOR_FOR_CLASS = {i: (get_random_color(), get_random_color(),
+                       get_random_color()) for i in range(10)}
 
 
 def generate_random_colors(number_of_colors=2):
@@ -54,7 +55,7 @@ def color_mnist(list_of_images, number_of_colors=2):
 def classwise_color_mnist(images, labels, number_of_colors_per_class=1):
     colored_images = []
     for (image, label) in zip(images, labels):
-        color = torch.tensor(COLOR_FOR_CLASS[label])
+        color = torch.tensor(COLOR_FOR_CLASS[int(label)])
         colored_images.append(torch.where(
             image != torch.tensor([0, 0, 0]), color, image))
     return colored_images
@@ -121,21 +122,18 @@ def get_dataset(args):
         print("Coloring the MNIST")
         print("shapes", train_dataset.data[0].shape)
         for client in user_groups:
-            colored_mnist_for_client = classwise_color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), list(
-                map(train_dataset.targets.__getitem__, user_groups[client])))
-            # colored_mnist_for_client = color_mnist(list(
-            #     map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=1)
+            # colored_mnist_for_client = classwise_color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), list(
+            #     map(train_dataset.targets.__getitem__, user_groups[client])))
+            colored_mnist_for_client = color_mnist(list(
+                map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=1)
             for idx_client, idx in enumerate(user_groups[client]):
                 train_dataset.data[idx] = colored_mnist_for_client[idx_client]
-
-    print(train_dataset.data[0].shape)
 
     for idx in range(len(train_dataset.data)):
         train_dataset.data[idx] = torch.moveaxis(
             train_dataset.data[idx], -1, 0)
         train_dataset.data[idx] = torch.moveaxis(
             train_dataset.data[idx], 1, -1)/255
-    print("shapes", train_dataset.data[0].shape)
 
     test_dataset.data = expand_to_3d(test_dataset.data)
     test_dataset.data = color_mnist(test_dataset.data, number_of_colors=1)
@@ -143,7 +141,6 @@ def get_dataset(args):
         test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], -1, 0)
         test_dataset.data[idx] = torch.moveaxis(
             test_dataset.data[idx], 1, -1)/255
-    print("shapes", test_dataset.data[0].shape)
 
     # plt.imshow(test_dataset.data[0])
     # plt.show()
@@ -183,7 +180,3 @@ def exp_details(args):
     print(f'    Local Batch size   : {args.local_bs}')
     print(f'    Local Epochs       : {args.local_ep}\n')
     return
-
-
-colors = generate_random_colors(10)
-print(colors)

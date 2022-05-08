@@ -21,10 +21,10 @@ from utils import get_dataset, average_weights, exp_details
 from domainbed.lib import hparams_registry
 import wandb
 import os
-os.environ["WANDB_API_KEY"] = "e850cb010e84db3ef3f51b131087c4615181d915"
+os.environ["WANDB_API_KEY"] = "69b6150e50e6f283a5d48476cbc43830f0e35d3c"
 
 if __name__ == '__main__':
-    wandb.init(project="FeDomainBed")
+    wandb.init(project="fedomainbed", entity="athul")
     start_time = time.time()
 
     # define paths
@@ -94,6 +94,8 @@ if __name__ == '__main__':
 
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
+        list_acc, list_loss = [], []
+
         print(f'\n | Global Training Round : {epoch+1} |\n')
 
         m = max(int(args.frac * args.num_users), 1)
@@ -107,6 +109,13 @@ if __name__ == '__main__':
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
+            local_model_from_algo = algorithm.get_network()
+            local_model_from_algo.load_state_dict(w)
+            acc, loss = local_model.inference(model=local_model_from_algo)
+            list_acc += [acc]
+            list_loss += [loss]
+        train_accuracy += [sum(list_acc)/len(list_acc)]
+
         # update global weights
         global_weights = average_weights(local_weights)
 
@@ -117,15 +126,14 @@ if __name__ == '__main__':
         train_loss += [loss_avg]
 
         # Calculate avg training accuracy over all users at every epoch
-        list_acc, list_loss = [], []
-        global_model.eval()
-        for c in range(args.num_users):
-            local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                    idxs=user_groups[idx], logger=logger, algorithm=algorithm)
-            acc, loss = local_model.inference(model=global_model)
-            list_acc += [acc]
-            list_loss += [loss]
-        train_accuracy += [sum(list_acc)/len(list_acc)]
+        # global_model.eval()
+        # for c in range(args.num_users):
+        #     local_model = LocalUpdate(args=args, dataset=train_dataset,
+        #                             idxs=user_groups[c], logger=logger, algorithm=algorithm)
+        #     acc, loss = local_model.inference(model=global_model)
+        #     list_acc += [acc]
+        #     list_loss += [loss]
+        # train_accuracy += [sum(list_acc)/len(list_acc)]
 
         # print global training loss after every 'i' rounds
         if (epoch+1) % print_every == 0:
