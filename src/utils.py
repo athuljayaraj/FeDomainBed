@@ -5,9 +5,23 @@
 import copy
 import torch
 from torchvision import datasets, transforms
+import torchvision.transforms.functional as TF
 import numpy as np
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
+
+
+def generate_random_rotation_angle():
+    return np.random.randint(0, 180, dtype=np.uint8)
+
+
+def rotate_mnist(images):
+    random_rotation_angle = generate_random_rotation_angle()
+    apply_transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomRotation((random_rotation_angle-10, random_rotation_angle+10), fill=0)])
+    rotated_images = apply_transform(images)
+    return rotated_images
 
 
 def get_random_color():
@@ -122,30 +136,31 @@ def get_dataset(args):
         print("Coloring the MNIST")
         print("shapes", train_dataset.data[0].shape)
         for client in user_groups:
-            # colored_mnist_for_client = classwise_color_mnist(list(map(train_dataset.data.__getitem__, user_groups[client])), list(
-            #     map(train_dataset.targets.__getitem__, user_groups[client])))
             colored_mnist_for_client = color_mnist(list(
-                map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=1)
+                map(train_dataset.data.__getitem__, user_groups[client])), number_of_colors=5)
             for idx_client, idx in enumerate(user_groups[client]):
                 train_dataset.data[idx] = colored_mnist_for_client[idx_client]
 
-    for idx in range(len(train_dataset.data)):
-        train_dataset.data[idx] = torch.moveaxis(
-            train_dataset.data[idx], -1, 0)
-        train_dataset.data[idx] = torch.moveaxis(
-            train_dataset.data[idx], 1, -1)/255
+        for idx in range(len(train_dataset.data)):
+            train_dataset.data[idx] = torch.moveaxis(
+                train_dataset.data[idx], -1, 0)
+            train_dataset.data[idx] = torch.moveaxis(
+                train_dataset.data[idx], 1, -1)/255
 
-    test_dataset.data = expand_to_3d(test_dataset.data)
-    test_dataset.data = color_mnist(test_dataset.data, number_of_colors=1)
-    for idx in range(len(test_dataset.data)):
-        test_dataset.data[idx] = torch.moveaxis(test_dataset.data[idx], -1, 0)
-        test_dataset.data[idx] = torch.moveaxis(
-            test_dataset.data[idx], 1, -1)/255
+        test_dataset.data = expand_to_3d(test_dataset.data)
+        test_dataset.data = color_mnist(test_dataset.data, number_of_colors=5)
+        for idx in range(len(test_dataset.data)):
+            test_dataset.data[idx] = torch.moveaxis(
+                test_dataset.data[idx], -1, 0)
+            test_dataset.data[idx] = torch.moveaxis(
+                test_dataset.data[idx], 1, -1)/255
 
-    # plt.imshow(test_dataset.data[0])
-    # plt.show()
-    # plt.imshow(train_dataset.data[0])
-    # plt.show()
+    if args.dataset == 'rotmnist':
+        for client in user_groups:
+            rotated_mnist_for_client = rotate_mnist(list(
+                map(train_dataset.data.__getitem__, user_groups[client])))
+            for idx_client, idx in enumerate(user_groups[client]):
+                train_dataset.data[idx] = rotated_mnist_for_client[idx_client]
 
     return train_dataset, test_dataset, user_groups
 

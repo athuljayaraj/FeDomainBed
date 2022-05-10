@@ -31,7 +31,7 @@ def mnist_noniid(dataset, num_users):
     :return:
     """
     # 60,000 training imgs -->  300 imgs/shard X 200 shards
-    num_shards, num_imgs = 200, 300
+    num_shards, num_imgs = 30, 2000
     idx_shard = [i for i in range(num_shards)]
     dict_users = {i: np.array([], dtype=np.int64) for i in range(num_users)}
     idxs = np.arange(num_shards*num_imgs)
@@ -44,7 +44,7 @@ def mnist_noniid(dataset, num_users):
 
     # divide and assign 2 shards/client
     for i in range(num_users):
-        rand_set = set(np.random.choice(idx_shard, 10, replace=False))
+        rand_set = set(np.random.choice(idx_shard, 3, replace=False))
         idx_shard = list(set(idx_shard) - rand_set)
         for rand in rand_set:
             dict_users[i] = np.concatenate(

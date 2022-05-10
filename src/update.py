@@ -26,6 +26,7 @@ class DatasetSplit(Dataset):
             label = self.dataset.targets[self.idxs[item]]
         return torch.tensor(image), torch.tensor(label)
 
+
 class LocalUpdate(object):
     def __init__(self, args, dataset, idxs, logger, algorithm):
         self.args = args
@@ -75,15 +76,16 @@ class LocalUpdate(object):
                 # print(len(images))
                 # print('update_weights: Images shape: ')
                 # print(images[0].shape)
-                updated_network = self.algorithm.update([(images.to(self.device), labels.to(self.device))])
+                updated_network = self.algorithm.update(
+                    [(images.to(self.device), labels.to(self.device))])
 
             loss = updated_network['loss']
 
-                # optimizer.zero_grad()
-                # log_probs = model(images)
-                # loss = self.criterion(log_probs, labels)
-                # loss.backward()
-                # optimizer.step()
+            # optimizer.zero_grad()
+            # log_probs = model(images)
+            # loss = self.criterion(log_probs, labels)
+            # loss.backward()
+            # optimizer.step()
 
             if self.args.verbose:
                 print('| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -98,13 +100,37 @@ class LocalUpdate(object):
         return model_state_dict, sum(epoch_loss) / len(epoch_loss)
 
     def inference(self, model):
-        """ Returns the inference accuracy and loss.
+        """ 
+        Returns the inference accuracy and loss.
         """
-
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
         for batch_idx, (images, labels) in enumerate(self.testloader):
+            images, labels = images.to(self.device), labels.to(self.device)
+
+            # Inference
+            outputs = self.algorithm.predict(images)
+            batch_loss = self.criterion(outputs, labels)
+            loss += batch_loss.item()
+
+            # Prediction
+            _, pred_labels = torch.max(outputs, 1)
+            pred_labels = pred_labels.view(-1)
+            correct += torch.sum(torch.eq(pred_labels, labels)).item()
+            total += len(labels)
+
+        accuracy = correct/total
+        return accuracy, loss
+
+    def train_inference(self, model):
+        """ 
+        Returns the inference accuracy and loss.
+        """
+        model.eval()
+        loss, total, correct = 0.0, 0.0, 0.0
+
+        for batch_idx, (images, labels) in enumerate(self.trainloader):
             images, labels = images.to(self.device), labels.to(self.device)
 
             # Inference
@@ -132,7 +158,7 @@ def test_inference(args, model, test_dataset):
     device = 'cuda' if args.gpu != None else 'cpu'
     criterion = nn.NLLLoss().to(device)
     testloader = DataLoader(DatasetSplit(test_dataset, range(len(test_dataset))),
-                                 batch_size=128, shuffle=False)
+                            batch_size=128, shuffle=False)
 
     for batch_idx, (images, labels) in enumerate(testloader):
         images, labels = images.to(device), labels.to(device)

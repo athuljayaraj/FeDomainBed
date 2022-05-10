@@ -5,7 +5,6 @@
 import os
 import copy
 import time
-import pickle
 import numpy as np
 from domainbed.algorithms import get_algorithm_class
 from domainbed import datasets
@@ -21,6 +20,7 @@ from utils import get_dataset, average_weights, exp_details
 from domainbed.lib import hparams_registry
 import wandb
 import os
+
 os.environ["WANDB_API_KEY"] = "69b6150e50e6f283a5d48476cbc43830f0e35d3c"
 
 if __name__ == '__main__':
@@ -35,34 +35,12 @@ if __name__ == '__main__':
     exp_details(args)
 
     device = "cpu"
-
     if args.gpu != None:
         device = 'cuda'
         torch.cuda.device(args.gpu)
 
     # load dataset and user groups
     train_dataset, test_dataset, user_groups = get_dataset(args)
-    
-    # BUILD MODEL
-    # if args.model == 'cnn':
-    #     # Convolutional neural netork
-    #     if args.dataset == 'mnist':
-    #         global_model = CNNMnist(args=args)
-    #     elif args.dataset == 'fmnist':
-    #         global_model = CNNFashion_Mnist(args=args)
-    #     elif args.dataset == 'cifar':
-    #         global_model = CNNCifar(args=args)
-
-    # elif args.model == 'mlp':
-    #     # Multi-layer preceptron
-    #     img_size = train_dataset[0][0].shape
-    #     len_in = 1
-    #     for x in img_size:
-    #         len_in *= x
-    #         global_model = MLP(dim_in=len_in, dim_hidden=64,
-    #                            dim_out=args.num_classes)
-    # else:
-    #     exit('Error: unrecognized model')
 
     # Training
     train_loss, train_accuracy = [], []
@@ -73,14 +51,13 @@ if __name__ == '__main__':
 
     # choose algorithm
     hparams = hparams_registry.default_hparams(args.algorithm, args.dataset)
-    batch_size=hparams['batch_size']
-    # dataset = vars(datasets)["ColoredMNIST"]("data/", 100000, hparams)
+    batch_size = hparams['batch_size']
 
     algorithm_class = get_algorithm_class(args.algorithm)
     input_shape = train_dataset.data[0].shape
-    print('input shape: ')
-    print(input_shape)
-    algorithm = algorithm_class(input_shape, 10, len(train_dataset.data) - 10000, hparams)
+    print(f'input shape: {input_shape}')
+    algorithm = algorithm_class(input_shape, 10, len(
+        train_dataset.data) - 10000, hparams)
 
     global_model = algorithm.get_network()
 
@@ -91,10 +68,9 @@ if __name__ == '__main__':
     # copy weights
     global_weights = global_model.state_dict()
 
-
     for epoch in tqdm(range(args.epochs)):
-        local_weights, local_losses = [], []
-        list_acc, list_loss = [], []
+        local_weights = []
+        local_accuracies, local_losses = [], []
 
         print(f'\n | Global Training Round : {epoch+1} |\n')
 
@@ -103,81 +79,48 @@ if __name__ == '__main__':
 
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
-                                    idxs=user_groups[idx], logger=logger, algorithm=algorithm)
+                                      idxs=user_groups[idx], logger=logger, algorithm=algorithm)
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
-            local_losses.append(copy.deepcopy(loss))
 
-            local_model_from_algo = algorithm.get_network()
-            local_model_from_algo.load_state_dict(w)
-            acc, loss = local_model.inference(model=local_model_from_algo)
-            list_acc += [acc]
-            list_loss += [loss]
-        train_accuracy += [sum(list_acc)/len(list_acc)]
+            local_model_for_client = algorithm.get_network()
+            local_model_for_client.load_state_dict(w)
+            train_accuracy_for_client, train_loss_for_client = local_model.train_inference(
+                local_model_for_client)
+
+            local_accuracies.append(train_accuracy_for_client)
+            local_losses.append(train_loss_for_client)
+
+        train_accuracy += [sum(local_accuracies)/len(local_accuracies)]
+        train_loss += [sum(local_losses) / len(local_losses)]
 
         # update global weights
         global_weights = average_weights(local_weights)
-
-        # update global weights
         global_model.load_state_dict(global_weights)
 
-        loss_avg = sum(local_losses) / len(local_losses)
-        train_loss += [loss_avg]
-
-        # Calculate avg training accuracy over all users at every epoch
-        # global_model.eval()
-        # for c in range(args.num_users):
-        #     local_model = LocalUpdate(args=args, dataset=train_dataset,
-        #                             idxs=user_groups[c], logger=logger, algorithm=algorithm)
-        #     acc, loss = local_model.inference(model=global_model)
-        #     list_acc += [acc]
-        #     list_loss += [loss]
-        # train_accuracy += [sum(list_acc)/len(list_acc)]
+        train_acc_this_epoch = train_accuracy[-1]
+        train_loss = np.mean(np.array(train_loss))
 
         # print global training loss after every 'i' rounds
         if (epoch+1) % print_every == 0:
-            print(f' \nAvg Training Stats after {epoch+1} global rounds:')
-            print(f'Training Loss : {np.mean(np.array(train_loss))}')
-            print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
-        train_acc = train_accuracy[-1]; train_loss = np.mean(np.array(train_loss))
+            print(f'\nAvg Training Stats after {epoch+1} global rounds:')
+            print(f'Training Loss : {train_loss}')
+            print('Train Accuracy: {:.2f}% \n'.format(
+                100*train_acc_this_epoch))
+
         # Test inference after completion of training
         test_acc, test_loss = test_inference(args, global_model, test_dataset)
-        wandb.log({'test accuracy': test_acc, 'test loss': test_loss, 'train accuracy': train_acc, 'train loss': train_loss})
-        
+        wandb.log({'test accuracy': test_acc, 'test loss': test_loss,
+                  'train accuracy': train_acc_this_epoch, 'train loss': train_loss})
+
         print(f' \n Results after {args.epochs} global rounds of training:')
-        print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
+        print(
+            "|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
         print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.format(args.dataset, args.model, args.epochs, args.frac, args.iid, args.local_ep, args.local_bs)
-
-    # with open(file_name, 'wb') as f:
-    #     pickle.dump([train_loss, train_accuracy], f)
+    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.format(
+        args.dataset, args.model, args.epochs, args.frac, args.iid, args.local_ep, args.local_bs)
 
     print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
-
-    # PLOTTING (optional)
-    # import matplotlib
-    # import matplotlib.pyplot as plt
-    # matplotlib.use('Agg')
-
-    # Plot Loss curve
-    # plt.figure()
-    # plt.title('Training Loss vs Communication rounds')
-    # plt.plot(range(len(train_loss)), train_loss, color='r')
-    # plt.ylabel('Training loss')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))
-    #
-    # # Plot Average Accuracy vs Communication rounds
-    # plt.figure()
-    # plt.title('Average Accuracy vs Communication rounds')
-    # plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
-    # plt.ylabel('Average Accuracy')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))
