@@ -19,7 +19,10 @@ def rotate_mnist(images):
     random_rotation_angle = generate_random_rotation_angle()
     apply_transform = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.RandomRotation((random_rotation_angle-10, random_rotation_angle+10), fill=0)])
+        transforms.RandomRotation(
+            (random_rotation_angle-10, random_rotation_angle+10), fill=0),
+        transforms.ToTensor()
+    ])
     rotated_images = list(map(apply_transform, images))
     return rotated_images
 
@@ -157,10 +160,13 @@ def get_dataset(args):
 
     if args.dataset == 'rotmnist':
         for client in user_groups:
-            rotated_mnist_for_client = rotate_mnist(list(
-                map(train_dataset.data.__getitem__, user_groups[client])))
+            rotated_mnist_for_client = rotate_mnist(
+                list(map(train_dataset.data.__getitem__, user_groups[client])))
+            # rotated_mnist_for_client = rotate_mnist(list(
+            #     map(train_dataset.data.__getitem__, user_groups[client])))
             for idx_client, idx in enumerate(user_groups[client]):
-                train_dataset.data[idx] = rotated_mnist_for_client[idx_client]/255
+                # train_dataset.data[idx] = rotated_mnist_for_client[idx_client]/255
+                train_dataset.data[idx] = rotated_mnist_for_client[idx_client]*255
 
     return train_dataset, test_dataset, user_groups
 
