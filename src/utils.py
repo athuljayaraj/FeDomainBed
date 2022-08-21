@@ -7,6 +7,7 @@ import torch
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
+from custom_cifar import CustomCIFAR10Loader
 
 
 def get_dataset(args):
@@ -21,11 +22,11 @@ def get_dataset(args):
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True,
-                                       transform=apply_transform)
+        train_dataset = CustomCIFAR10Loader(data_dir, train=True, download=True,
+                                            transform=apply_transform, exclude_list=[0, 1, 2, 3, 4])
 
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True,
-                                      transform=apply_transform)
+        test_dataset = CustomCIFAR10Loader(data_dir, train=False, download=True,
+                                           transform=apply_transform, exclude_list=[5, 6, 7, 8, 9])
 
         # sample training data amongst users
         if args.iid:
@@ -64,7 +65,8 @@ def get_dataset(args):
             # Sample Non-IID user data from Mnist
             if args.unequal:
                 # Chose uneuqal splits for every user
-                user_groups = mnist_noniid_unequal(train_dataset, args.num_users)
+                user_groups = mnist_noniid_unequal(
+                    train_dataset, args.num_users)
             else:
                 # Chose euqal splits for every user
                 user_groups = mnist_noniid(train_dataset, args.num_users)
@@ -90,7 +92,8 @@ def exp_details(args):
     print(f'    Optimizer : {args.optimizer}')
     print(f'    Learning  : {args.lr}')
     print(f'    Global Rounds   : {args.epochs}')
-    print(f'    Device   : {"cuda:{}".format(args.gpu) if args.gpu != None else "cpu"}\n')
+    print(
+        f'    Device   : {"cuda:{}".format(args.gpu) if args.gpu != None else "cpu"}\n')
 
     print('    Federated parameters:')
     if args.iid:
