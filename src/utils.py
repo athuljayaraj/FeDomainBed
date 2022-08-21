@@ -8,6 +8,7 @@ from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
 from custom_cifar import CustomCIFAR10Loader
+import numpy as np
 
 
 def get_dataset(args):
@@ -24,6 +25,7 @@ def get_dataset(args):
 
         train_dataset = CustomCIFAR10Loader(data_dir, train=True, download=True,
                                             transform=apply_transform, exclude_list=[0, 1, 2, 3, 4])
+        print(np.unique(train_dataset.targets))
 
         test_dataset = CustomCIFAR10Loader(data_dir, train=False, download=True,
                                            transform=apply_transform, exclude_list=[5, 6, 7, 8, 9])
