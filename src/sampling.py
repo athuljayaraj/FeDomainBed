@@ -142,6 +142,21 @@ def mnist_noniid_unequal(dataset, num_users):
     return dict_users
 
 
+def get_label_wise_idx_chunks(dataset):
+    label_wise_idxs = {i: [] for i in range(10)}
+    label_wise_idx_chunks = {}
+    index = 0
+    for datapoint in dataset:
+        label_wise_idxs[datapoint[1]] = label_wise_idxs[datapoint[1]] + [index]
+        index = index + 1
+
+    for i in range(10):
+        np.random.shuffle(label_wise_idxs[i])
+        label_wise_idx_chunks[i] = np.array_split(label_wise_idxs[i], 5)
+
+    return label_wise_idx_chunks
+
+
 def cifar_iid(dataset, num_users):
     """
     Sample I.I.D. client data from CIFAR10 dataset
@@ -149,13 +164,28 @@ def cifar_iid(dataset, num_users):
     :param num_users:
     :return: dict of image index
     """
-    num_items = int(len(dataset)/num_users)
-    dict_users, all_idxs = {}, [i for i in range(len(dataset))]
+    dict_users = {i: [] for i in range(num_users)}
+    label_wise_idx_chunks = get_label_wise_idx_chunks(dataset)
     for i in range(num_users):
-        dict_users[i] = set(np.random.choice(all_idxs, num_items,
-                                             replace=False))
-        all_idxs = list(set(all_idxs) - dict_users[i])
+        if i < 5:
+            for label in range(5):
+
+                print(len(label_wise_idx_chunks[label][i]))
+                print(type(label_wise_idx_chunks[label][i]))
+                print(dict_users[i])
+                print(type(dict_users[i]))
+                dict_users[i] = dict_users[i] + label_wise_idx_chunks[label][i].tolist()
+        else:
+            for label in range(5, 10):
+                dict_users[i] = dict_users[i] + label_wise_idx_chunks[label][i-5].tolist()
+    evaluate(dict_users, dataset)
     return dict_users
+
+
+def evaluate(dict_users, dataset):
+    for user_idx in range(10):
+        labels = [dataset.targets[i] for i in dict_users[user_idx]]
+        print(user_idx, np.unique(labels))
 
 
 def cifar_noniid(dataset, num_users):

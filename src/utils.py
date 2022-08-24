@@ -24,11 +24,11 @@ def get_dataset(args):
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         train_dataset = CustomCIFAR10Loader(data_dir, train=True, download=True,
-                                            transform=apply_transform, exclude_list=[0, 1, 2, 3, 4])
+                                            transform=apply_transform)
         print(np.unique(train_dataset.targets))
 
         test_dataset = CustomCIFAR10Loader(data_dir, train=False, download=True,
-                                           transform=apply_transform, exclude_list=[5, 6, 7, 8, 9])
+                                           transform=apply_transform)
 
         # sample training data amongst users
         if args.iid:
